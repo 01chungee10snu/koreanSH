@@ -506,16 +506,18 @@ function drawBackgroundTiles(W, H, opacity = 0.15) {
       CTX.fill();
       CTX.restore();
 
-      // 티니핑 이미지 그리기
+      // 티니핑 이미지 그리기 (클로저 문제 해결)
       if (tp.image) {
-        const img = new Image();
-        img.onload = () => {
-          CTX.globalAlpha = opacity;
-          const imgSize = tileSize * 0.7;
-          CTX.drawImage(img, x + (tileSize - imgSize) / 2, y + (tileSize - imgSize) / 2, imgSize, imgSize);
-          CTX.globalAlpha = 1.0;
-        };
-        img.src = tp.image;
+        ((currentX, currentY, currentOpacity, imgSrc) => {
+          const img = new Image();
+          img.onload = () => {
+            CTX.globalAlpha = currentOpacity;
+            const imgSize = tileSize * 0.7;
+            CTX.drawImage(img, currentX + (tileSize - imgSize) / 2, currentY + (tileSize - imgSize) / 2, imgSize, imgSize);
+            CTX.globalAlpha = 1.0;
+          };
+          img.src = imgSrc;
+        })(x, y, opacity, tp.image);
       }
     }
   }
@@ -596,14 +598,16 @@ function drawHome() {
     CTX.stroke();
     CTX.restore();
 
-    // 티니핑 이미지 그리기
+    // 티니핑 이미지 그리기 (클로저 문제 해결)
     if (tp.image) {
-      const img = new Image();
-      img.onload = () => {
-        const imgSize = tileSize * 0.65;
-        CTX.drawImage(img, x + (tileSize - imgSize) / 2, y + (tileSize - imgSize) / 2 - 5, imgSize, imgSize);
-      };
-      img.src = tp.image;
+      ((currentX, currentY, currentImage) => {
+        const img = new Image();
+        img.onload = () => {
+          const imgSize = tileSize * 0.65;
+          CTX.drawImage(img, currentX + (tileSize - imgSize) / 2, currentY + (tileSize - imgSize) / 2 - 5, imgSize, imgSize);
+        };
+        img.src = currentImage;
+      })(x, y, tp.image);
     }
 
     // 티니핑 이름
@@ -801,26 +805,33 @@ function drawCatch(ts) {
   // 이미지
   const tgt = STATE.newTiniping;
   if (tgt && tgt.image) {
-    const img = new Image();
-    img.onload = () => {
-      const size = 200*scale;
-      CTX.drawImage(img, cx-size/2, cy-size/2, size, size);
-      // 안내 텍스트
-      CTX.fillStyle='#9333ea';
-      CTX.font='bold 24px system-ui';
-      CTX.textAlign='center';
-      CTX.fillText('태희가 캐치 성공!', cx, H - 100);
-      // 버튼
-      const bw=240, bh=52, bx=cx-bw/2, by=H-80;
-      roundRect(CTX, bx, by, bw, bh, 14);
-      const gr = CTX.createLinearGradient(bx,by,bx+bw,by+bh);
-      gr.addColorStop(0,'#f472b6'); gr.addColorStop(1,'#8b5cf6');
-      CTX.fillStyle=gr; CTX.fill();
-      CTX.fillStyle='#fff'; CTX.font='bold 18px system-ui';
-      CTX.fillText('컬렉션에 담기', cx, by+34);
-      STATE.hitboxes.push({ id:'btn_catch_ok', x:bx, y:by, w:bw, h:bh });
-    };
-    img.src = tgt.image;
+    // 클로저 문제 해결 및 이미지와 UI 분리
+    ((centerX, centerY, currentScale, imgSrc) => {
+      const img = new Image();
+      img.onload = () => {
+        const size = 200*currentScale;
+        CTX.drawImage(img, centerX-size/2, centerY-size/2, size, size);
+      };
+      img.src = imgSrc;
+    })(cx, cy, scale, tgt.image);
+  }
+
+  // UI 요소는 이미지 로드와 별도로 표시
+  if (tgt) {
+    // 안내 텍스트
+    CTX.fillStyle='#9333ea';
+    CTX.font='bold 24px system-ui';
+    CTX.textAlign='center';
+    CTX.fillText('태희가 캐치 성공!', cx, H - 100);
+    // 버튼
+    const bw=240, bh=52, bx=cx-bw/2, by=H-80;
+    roundRect(CTX, bx, by, bw, bh, 14);
+    const gr = CTX.createLinearGradient(bx,by,bx+bw,by+bh);
+    gr.addColorStop(0,'#f472b6'); gr.addColorStop(1,'#8b5cf6');
+    CTX.fillStyle=gr; CTX.fill();
+    CTX.fillStyle='#fff'; CTX.font='bold 18px system-ui';
+    CTX.fillText('컬렉션에 담기', cx, by+34);
+    STATE.hitboxes.push({ id:'btn_catch_ok', x:bx, y:by, w:bw, h:bh });
   } else {
     // 이미지 없는 경우 텍스트만
     CTX.fillStyle='#9333ea';
@@ -877,9 +888,12 @@ function drawCollection() {
     const size = 58;
 
     if (STATE.caughtIds.includes(t.id) && t.image) {
-      const img = new Image();
-      img.onload = ()=> { CTX.drawImage(img, centerX-size/2, centerY-size/2, size, size); };
-      img.src = t.image;
+      // 클로저 문제 해결
+      ((cx, cy, sz, imgSrc) => {
+        const img = new Image();
+        img.onload = ()=> { CTX.drawImage(img, cx-sz/2, cy-sz/2, sz, sz); };
+        img.src = imgSrc;
+      })(centerX, centerY, size, t.image);
       CTX.fillStyle='#374151'; CTX.font='12px system-ui';
       CTX.fillText(t.name, centerX, y+h-16);
     } else {
