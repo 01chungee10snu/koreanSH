@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
 <title>태희의 도전! 나눗셈을 성공하고 티니핑 캐치!</title>
 <style>
-  html,body { margin:0; padding:0; height:100%; background:#f7f8fc; }
+  html,body { margin:0; padding:0; min-height:100%; background:#f7f8fc; overflow-y:auto; }
   #app { display:block; margin:0 auto; background:#ffffff; max-width:720px; box-shadow:0 10px 30px rgba(0,0,0,0.08); }
   .wrap { padding:12px; }
   canvas { width:100%; height:auto; display:block; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
@@ -268,17 +268,55 @@ function buildNameToImageMap() {
     const arr = tinipingImagesByGroup?.[g] || [];
     for (const it of arr) {
       const name = it["이름"];
-      const b64 = it["이미지"];
-      if (name && b64) {
-        const url = b64.startsWith("data:") ? b64 : `data:image/jpeg;base64,${b64}`;
+      const imageData = it["이미지"];
+      if (name && imageData) {
+        // Handle both URLs and base64 data
+        let url;
+        if (imageData.startsWith("http://") || imageData.startsWith("https://")) {
+          url = imageData; // Direct URL
+        } else if (imageData.startsWith("data:")) {
+          url = imageData; // Already formatted data URL
+        } else {
+          url = `data:image/jpeg;base64,${imageData}`; // Base64 data
+        }
         map.set(name, url);
       }
     }
   }
   return map;
 }
-const NAME2IMG = buildNameToImageMap();
-const TINIPINGS = baseTinipings.map(t => ({ ...t, image: NAME2IMG.get(t.name) || null }));
+
+// Load images from JSON file
+let NAME2IMG = new Map();
+let TINIPINGS = baseTinipings.map(t => ({ ...t, image: null }));
+
+// Async function to load images from external JSON
+async function loadTinipingImages() {
+  try {
+    const response = await fetch('teeniepingIMG.json');
+    if (response.ok) {
+      const jsonData = await response.json();
+      // Replace tinipingImagesByGroup with loaded data
+      Object.assign(tinipingImagesByGroup, jsonData);
+      // Rebuild the image map
+      NAME2IMG = buildNameToImageMap();
+      // Update TINIPINGS with images
+      TINIPINGS = baseTinipings.map(t => ({ ...t, image: NAME2IMG.get(t.name) || null }));
+      console.log('티니핑 이미지 로드 완료:', TINIPINGS.filter(t => t.image).length, '개');
+    } else {
+      console.warn('teeniepingIMG.json 로드 실패, 기본 이미지 사용');
+      NAME2IMG = buildNameToImageMap();
+      TINIPINGS = baseTinipings.map(t => ({ ...t, image: NAME2IMG.get(t.name) || null }));
+    }
+  } catch (error) {
+    console.warn('이미지 JSON 로드 오류:', error);
+    NAME2IMG = buildNameToImageMap();
+    TINIPINGS = baseTinipings.map(t => ({ ...t, image: NAME2IMG.get(t.name) || null }));
+  }
+}
+
+// Initialize images
+loadTinipingImages();
 
 /* =========================================================================
    2) 상태
