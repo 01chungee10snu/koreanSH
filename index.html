@@ -689,16 +689,9 @@ function drawHome() {
     CTX.restore();
 
     // 티니핑 이미지 그리기 (클로저 문제 해결)
-    if (tp.image) {
-      ((currentX, currentY, currentImage) => {
-        const img = new Image();
-        img.onload = () => {
-          const imgSize = tileSize * 0.65;
-          // 이미지를 타일 상단에서 적절한 간격으로 배치
-          CTX.drawImage(img, currentX + (tileSize - imgSize) / 2, currentY + 8, imgSize, imgSize);
-        };
-        img.src = currentImage;
-      })(x, y, tp.image);
+    if (tp.imageObj) {
+      const imgSize = tileSize * 0.65;
+      CTX.drawImage(tp.imageObj, x + (tileSize - imgSize) / 2, y + 8, imgSize, imgSize);
     }
 
     // 티니핑 이름
