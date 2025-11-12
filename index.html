@@ -29,6 +29,12 @@ const CTX = CANVAS.getContext('2d');
 const ERROR_BOX = document.getElementById('err');
 const shownErrorMessages = new Set();
 
+let STATE = {
+  mode: 'home',
+  hitboxes: []
+};
+let TINIPINGS = [];
+
 if (ERROR_BOX) {
   ERROR_BOX.setAttribute('aria-hidden', 'true');
 }
@@ -427,7 +433,7 @@ function buildNameToImageMap() {
 // Load images from JSON file
 let NAME2IMG = new Map();
 let IMAGE_CACHE = new Map(); // 이미지 객체 캐시
-let TINIPINGS = baseTinipings.map(t => ({ ...t, image: null }));
+TINIPINGS = baseTinipings.map(t => ({ ...t, image: null }));
 
 // 이미지를 미리 로드하고 캐시하는 함수
 function preloadImage(src) {
@@ -509,7 +515,7 @@ loadTinipingImages();
    2) 상태
    ========================================================================= */
 const LS_KEY = 'taehee-math-division-canvas';
-let STATE = {
+STATE = {
   mode: 'home', // home | quiz | explain | catch | collection | complete
   questionIndex: 0,
   totalQuestions: 0,
