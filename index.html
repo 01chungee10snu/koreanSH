@@ -518,6 +518,23 @@ async function loadTinipingImages() {
 // Initialize images
 loadTinipingImages();
 
+// Encyclopedia data
+let ENCYCLOPEDIA = [];
+async function loadEncyclopedia() {
+  try {
+    const response = await fetch('teenieping_encyclopedia_verified.json');
+    if (response.ok) {
+      ENCYCLOPEDIA = await response.json();
+      console.log('티니핑 도감 데이터 로드 완료:', ENCYCLOPEDIA.length, '개');
+    } else {
+      console.warn('도감 데이터 로드 실패');
+    }
+  } catch (e) {
+    console.error('도감 데이터 로드 오류:', e);
+  }
+}
+loadEncyclopedia();
+
 /* =========================================================================
    2) 상태
    ========================================================================= */
@@ -1114,44 +1131,233 @@ function drawExplain() {
   STATE.hitboxes.push({ id: 'btn_next', x: nxX, y: nxY, w: nxW, h: nxH, disabled: !canNext });
 }
 
+function drawEncyclopediaCard(cx, startY, tiniping) {
+  // 도감 데이터 찾기
+  const encyclopedia = ENCYCLOPEDIA.find(e => e.id === tiniping.id);
+  if (!encyclopedia) return;
+
+  // 타입별 색상
+  const typeColors = {
+    '로열': { bg: '#fce7f3', border: '#ec4899', text: '#9f1239' },
+    '전설': { bg: '#fef3c7', border: '#f59e0b', text: '#92400e' },
+    '서포팅': { bg: '#ddd6fe', border: '#8b5cf6', text: '#5b21b6' },
+    '일반': { bg: '#e0f2fe', border: '#0ea5e9', text: '#075985' }
+  };
+  const colors = typeColors[encyclopedia.type] || typeColors['일반'];
+
+  // 카드 크기 및 위치
+  const cardW = Math.min(360, Math.round(400 * SCALE));
+  const cardH = Math.round(280 * SCALE);
+  const cardX = cx - cardW / 2;
+  const cardY = startY;
+  const padding = Math.round(16 * SCALE);
+
+  // 카드 배경
+  CTX.save();
+  roundRect(CTX, cardX, cardY, cardW, cardH, Math.round(12 * SCALE));
+  CTX.fillStyle = colors.bg;
+  CTX.fill();
+  CTX.strokeStyle = colors.border;
+  CTX.lineWidth = Math.round(3 * SCALE);
+  CTX.stroke();
+  CTX.restore();
+
+  // 텍스트 설정
+  CTX.fillStyle = colors.text;
+  CTX.textAlign = 'left';
+  let textY = cardY + padding;
+
+  // 타이틀: 이름 + 타입
+  CTX.font = `bold ${Math.round(20 * SCALE)}px system-ui, -apple-system`;
+  CTX.fillText(`${encyclopedia.name}`, cardX + padding, textY);
+
+  // 타입 배지
+  const typeBadgeX = cardX + cardW - padding - Math.round(60 * SCALE);
+  CTX.save();
+  roundRect(CTX, typeBadgeX, textY - Math.round(16 * SCALE), Math.round(60 * SCALE), Math.round(24 * SCALE), Math.round(12 * SCALE));
+  CTX.fillStyle = colors.border;
+  CTX.fill();
+  CTX.restore();
+  CTX.fillStyle = '#ffffff';
+  CTX.font = `bold ${Math.round(12 * SCALE)}px system-ui, -apple-system`;
+  CTX.textAlign = 'center';
+  CTX.fillText(encyclopedia.type, typeBadgeX + Math.round(30 * SCALE), textY - Math.round(3 * SCALE));
+
+  textY += Math.round(32 * SCALE);
+  CTX.textAlign = 'left';
+
+  // 부제
+  CTX.fillStyle = colors.text;
+  CTX.font = `${Math.round(14 * SCALE)}px system-ui, -apple-system`;
+  CTX.fillText(`✨ ${encyclopedia.subtitle}`, cardX + padding, textY);
+  textY += Math.round(24 * SCALE);
+
+  // 구분선
+  CTX.strokeStyle = colors.border;
+  CTX.lineWidth = Math.round(1 * SCALE);
+  CTX.beginPath();
+  CTX.moveTo(cardX + padding, textY);
+  CTX.lineTo(cardX + cardW - padding, textY);
+  CTX.stroke();
+  textY += Math.round(16 * SCALE);
+
+  // 성격 (한 줄로 축약)
+  CTX.font = `${Math.round(12 * SCALE)}px system-ui, -apple-system`;
+  const personalityShort = encyclopedia.personality.substring(0, 30) + (encyclopedia.personality.length > 30 ? '...' : '');
+  CTX.fillText(`🎭 ${personalityShort}`, cardX + padding, textY);
+  textY += Math.round(22 * SCALE);
+
+  // 마법
+  if (encyclopedia.magic) {
+    const magicShort = encyclopedia.magic.substring(0, 35) + (encyclopedia.magic.length > 35 ? '...' : '');
+    CTX.fillText(`✨ ${magicShort}`, cardX + padding, textY);
+    textY += Math.round(22 * SCALE);
+  }
+
+  // 아이템
+  if (encyclopedia.item) {
+    CTX.fillText(`🔮 아이템: ${encyclopedia.item}`, cardX + padding, textY);
+    textY += Math.round(22 * SCALE);
+  }
+
+  // 좋아하는 것
+  if (encyclopedia.likes) {
+    const likesShort = encyclopedia.likes.substring(0, 25) + (encyclopedia.likes.length > 25 ? '...' : '');
+    CTX.fillText(`💖 좋아요: ${likesShort}`, cardX + padding, textY);
+    textY += Math.round(22 * SCALE);
+  }
+
+  // 싫어하는 것
+  if (encyclopedia.dislikes) {
+    const dislikesShort = encyclopedia.dislikes.substring(0, 25) + (encyclopedia.dislikes.length > 25 ? '...' : '');
+    CTX.fillText(`💔 싫어요: ${dislikesShort}`, cardX + padding, textY);
+  }
+
+  // 푸터 - 도감 번호
+  CTX.fillStyle = colors.border;
+  CTX.font = `bold ${Math.round(10 * SCALE)}px system-ui, -apple-system`;
+  CTX.textAlign = 'right';
+  CTX.fillText(`No. ${String(encyclopedia.id).padStart(3, '0')}`, cardX + cardW - padding, cardY + cardH - Math.round(12 * SCALE));
+}
+
 function drawCatch(ts) {
   const {W,H} = clear();
   drawBackgroundTiles(W, H, 0.1);
   const t0 = STATE.catchStart || (STATE.catchStart = ts);
-  const elapsed = Math.min(1, (ts - t0) / 1200); // 1.2s
+  const totalElapsed = ts - t0;
 
-  // 중앙 원 + 이미지 스케일
-  const cx = W/2, cy = H/2 - 20;
-  const baseR = 120, scale = 0.6 + 0.4*elapsed;
-
-  // 발광 원
-  CTX.save();
-  CTX.translate(cx, cy);
-  CTX.beginPath();
-  CTX.arc(0,0, baseR*scale + 10*Math.sin(elapsed*8), 0, Math.PI*2);
-  CTX.fillStyle='#ffffff';
-  CTX.shadowColor='rgba(255,120,200,0.6)';
-  CTX.shadowBlur=30;
-  CTX.fill();
-  CTX.restore();
-
-  // 이미지
   const tgt = STATE.newTiniping;
-  if (tgt && tgt.imageObj) {
-    // 캐시된 이미지 사용
-    const size = Math.round(200 * scale * SCALE);
-    CTX.drawImage(tgt.imageObj, cx - size / 2, cy - size / 2, size, size);
+  if (!tgt) return;
+
+  // 3단계 애니메이션
+  // Stage 1: 등장 (0~1200ms)
+  // Stage 2: 상단 이동 (1200~2000ms)
+  // Stage 3: 도감 카드 표시 (2000ms~)
+
+  const stage1Duration = 1200;
+  const stage2Duration = 800;
+  const stage2Start = stage1Duration;
+  const stage3Start = stage1Duration + stage2Duration;
+
+  let stage = 1;
+  let stageProgress = 0;
+
+  if (totalElapsed < stage1Duration) {
+    stage = 1;
+    stageProgress = totalElapsed / stage1Duration;
+  } else if (totalElapsed < stage3Start) {
+    stage = 2;
+    stageProgress = (totalElapsed - stage2Start) / stage2Duration;
+  } else {
+    stage = 3;
+    stageProgress = 1;
   }
 
-  // UI 요소는 이미지 로드와 별도로 표시 - 반응형
-  if (tgt) {
-    // 안내 텍스트
+  const cx = W / 2;
+  const baseR = 120;
+
+  // Stage별 Y 위치 계산
+  let cy, imageSize;
+
+  if (stage === 1) {
+    // Stage 1: 중앙에서 등장
+    cy = H / 2 - 20;
+    const scale = 0.6 + 0.4 * stageProgress;
+    imageSize = Math.round(200 * scale * SCALE);
+
+    // 발광 원
+    CTX.save();
+    CTX.translate(cx, cy);
+    CTX.beginPath();
+    CTX.arc(0, 0, baseR * scale + 10 * Math.sin(stageProgress * 8), 0, Math.PI * 2);
+    CTX.fillStyle = '#ffffff';
+    CTX.shadowColor = 'rgba(255,120,200,0.6)';
+    CTX.shadowBlur = 30;
+    CTX.fill();
+    CTX.restore();
+
+    // 티니핑 이미지
+    if (tgt.imageObj) {
+      CTX.drawImage(tgt.imageObj, cx - imageSize / 2, cy - imageSize / 2, imageSize, imageSize);
+    }
+
+    // "태희가 캐치 성공!" 텍스트
     CTX.fillStyle = '#9333ea';
     CTX.font = `bold ${Math.round(24 * SCALE)}px system-ui, -apple-system`;
     CTX.textAlign = 'center';
+    CTX.globalAlpha = stageProgress;
     CTX.fillText('태희가 캐치 성공!', cx, H - Math.round(100 * SCALE));
+    CTX.globalAlpha = 1;
 
-    // 버튼
+  } else if (stage === 2) {
+    // Stage 2: 상단으로 이동 (easing 적용)
+    const startY = H / 2 - 20;
+    const endY = Math.round(180 * SCALE);
+    const easeProgress = 1 - Math.pow(1 - stageProgress, 3); // ease-out cubic
+    cy = startY + (endY - startY) * easeProgress;
+    imageSize = Math.round(200 * SCALE);
+
+    // 발광 원
+    CTX.save();
+    CTX.translate(cx, cy);
+    CTX.beginPath();
+    CTX.arc(0, 0, baseR, 0, Math.PI * 2);
+    CTX.fillStyle = '#ffffff';
+    CTX.shadowColor = 'rgba(255,120,200,0.6)';
+    CTX.shadowBlur = 30;
+    CTX.fill();
+    CTX.restore();
+
+    // 티니핑 이미지
+    if (tgt.imageObj) {
+      CTX.drawImage(tgt.imageObj, cx - imageSize / 2, cy - imageSize / 2, imageSize, imageSize);
+    }
+
+  } else {
+    // Stage 3: 도감 카드 표시
+    cy = Math.round(180 * SCALE);
+    imageSize = Math.round(200 * SCALE);
+
+    // 발광 원
+    CTX.save();
+    CTX.translate(cx, cy);
+    CTX.beginPath();
+    CTX.arc(0, 0, baseR, 0, Math.PI * 2);
+    CTX.fillStyle = '#ffffff';
+    CTX.shadowColor = 'rgba(255,120,200,0.4)';
+    CTX.shadowBlur = 20;
+    CTX.fill();
+    CTX.restore();
+
+    // 티니핑 이미지
+    if (tgt.imageObj) {
+      CTX.drawImage(tgt.imageObj, cx - imageSize / 2, cy - imageSize / 2, imageSize, imageSize);
+    }
+
+    // 도감 카드 그리기
+    drawEncyclopediaCard(cx, cy + baseR + 20, tgt);
+
+    // "컬렉션에 담기" 버튼
     const bw = Math.max(200, Math.round(240 * SCALE));
     const bh = Math.max(50, Math.round(56 * SCALE));
     const bx = cx - bw / 2;
@@ -1170,33 +1376,7 @@ function drawCatch(ts) {
 
     CTX.fillStyle = '#ffffff';
     CTX.font = `bold ${Math.round(18 * SCALE)}px system-ui, -apple-system`;
-    CTX.textBaseline = 'middle';
-    CTX.fillText('컬렉션에 담기', cx, by + bh / 2);
-    CTX.textBaseline = 'alphabetic';
-
-    STATE.hitboxes.push({ id: 'btn_catch_ok', x: bx, y: by, w: bw, h: bh });
-  } else {
-    // 이미지 없는 경우 텍스트만
-    CTX.fillStyle = '#9333ea';
-    CTX.font = `bold ${Math.round(24 * SCALE)}px system-ui, -apple-system`;
     CTX.textAlign = 'center';
-    CTX.fillText('태희가 새 티니핑을 획득했어!', cx, H - Math.round(100 * SCALE));
-
-    const bw = Math.max(200, Math.round(240 * SCALE));
-    const bh = Math.max(50, Math.round(56 * SCALE));
-    const bx = cx - bw / 2;
-    const by = H - Math.round(80 * SCALE);
-
-    CTX.save();
-    roundRect(CTX, bx, by, bw, bh, Math.round(14 * SCALE));
-    CTX.fillStyle = '#8b5cf6';
-    CTX.shadowColor = 'rgba(139, 92, 246, 0.3)';
-    CTX.shadowBlur = Math.round(10 * SCALE);
-    CTX.fill();
-    CTX.restore();
-
-    CTX.fillStyle = '#ffffff';
-    CTX.font = `bold ${Math.round(18 * SCALE)}px system-ui, -apple-system`;
     CTX.textBaseline = 'middle';
     CTX.fillText('컬렉션에 담기', cx, by + bh / 2);
     CTX.textBaseline = 'alphabetic';
