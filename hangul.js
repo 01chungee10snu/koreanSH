@@ -360,48 +360,6 @@ function checkCombine() {
     }
 }
 
-function getJamoImages(word) {
-    const syllables = [];
-    for (let i = 0; i < word.length; i++) {
-        const charCode = word.charCodeAt(i);
-        // Check if it's a Hangul Syllable
-        if (charCode >= 0xAC00 && charCode <= 0xD7A3) {
-            const offset = charCode - 0xAC00;
-            const jong = offset % 28;
-            const jung = ((offset - jong) / 28) % 21;
-            const cho = (((offset - jong) / 28) - jung) / 21;
-
-            const syllable = { cho: null, jung: null, jong: null, type: 'v' };
-
-            // Cho
-            const choItem = CONSONANTS.find(c => c.code === cho);
-            if (choItem) syllable.cho = choItem.file;
-
-            // Jung
-            const jungItem = VOWELS.find(v => v.code === jung);
-            if (jungItem) {
-                syllable.jung = jungItem.file;
-                syllable.type = jungItem.type || 'v';
-            }
-
-            // Jong
-            if (jong > 0) {
-                const jongMap = {
-                    1: 0, 2: 1, 4: 2, 7: 3, 8: 5, 16: 6, 17: 7,
-                    19: 9, 20: 10, 21: 11, 22: 12, 23: 14, 24: 15,
-                    25: 16, 26: 17, 27: 18
-                };
-                if (jongMap[jong] !== undefined) {
-                    const jongItem = CONSONANTS.find(c => c.code === jongMap[jong]);
-                    if (jongItem) syllable.jong = jongItem.file;
-                }
-            }
-            syllables.push(syllable);
-        }
-    }
-    return syllables;
-}
-
 function renderQuiz() {
     const wrapper = document.createElement('div');
     wrapper.className = 'quiz-screen screen';
@@ -425,70 +383,71 @@ function renderQuiz() {
         <div style="margin-bottom: 20px; font-size: 1.2rem; color: #777;">이것은 무엇일까요?</div>
         <div class="quiz-options">
             ${options.map(opt => {
-        const syllables = getJamoImages(opt.word);
-        const syllableHtml = syllables.map(s => {
-            let inner = '';
-            if (s.type === 'v') {
-                // Vertical: Cho+Jung side by side, Jong below
-                inner = \`
-                            <div class="syllable-row">
-                                <img src="images/\${s.cho}" class="mini-char">
-                                <img src="images/\${s.jung}" class="mini-char">
-                            </div>
-                            \${s.jong ? \`<img src="images/\${s.jong}" class="mini-char">\` : ''}
-                        \`;
-                    } else {
-                        // Horizontal: Cho, then Jung below, then Jong below
-                        inner = \`
-                            <img src="images/\${s.cho}" class="mini-char">
-                            <img src="images/\${s.jung}" class="mini-char">
-                            \${s.jong ? \`<img src="images/\${s.jong}" class="mini-char">\` : ''}
-                        \`;
-                    }
-                    return \`<div class="syllable-block \${s.type}">\${inner}</div>\`;
-                }).join('');
-                
-                return \`<button class="quiz-btn" onclick="checkAnswer(this, '\${opt.word}', '\${answerData.word}')">
-                    <div class="word-imgs">\${syllableHtml}</div>
-                </button>\`;
-            }).join('')}
+        return `<button class="quiz-btn-text" onclick="checkAnswer(this, '${opt.word}', '${answerData.word}')">
+                    ${opt.word}
+                </button>`;
+    }).join('')}
         </div>
     `;
 
-                mainContainer.appendChild(wrapper);
+    mainContainer.appendChild(wrapper);
 
-                // Play sound
-                playSound("이것은 무엇일까요?");
-            }
+    // Play sound
+    playSound("이것은 무엇일까요?");
+}
 
-            function checkAnswer(btn, selected, correct) {
-                if (selected === correct) {
-                    btn.classList.add('correct');
-                    playSound("딩동댕! " + correct + "입니다!");
-                    setTimeout(() => {
-                        renderQuiz();
-                    }, 2000);
-                } else {
-                    btn.classList.add('wrong');
-                    playSound("땡! 다시 생각해보세요.");
-                    setTimeout(() => {
-                        btn.classList.remove('wrong');
-                    }, 500);
-                }
-            }
+function checkAnswer(btn, selected, correct) {
+    if (selected === correct) {
+        btn.classList.add('correct');
+        playSound("딩동댕! 정답입니다!");
 
-            function playSound(text) {
-                if ('speechSynthesis' in window) {
-                    // Cancel previous speech to avoid queue buildup
-                    window.speechSynthesis.cancel();
+        // Show Reading Prompt Overlay
+        setTimeout(() => {
+            showReadingPrompt(correct);
+        }, 1000);
 
-                    const msg = new SpeechSynthesisUtterance(text);
-                    msg.lang = 'ko-KR';
-                    msg.rate = 0.9; // Slightly slower for kids
-                    msg.pitch = 1.1; // Slightly higher pitch
-                    window.speechSynthesis.speak(msg);
-                }
-            }
+    } else {
+        btn.classList.add('wrong');
+        playSound("땡! 다시 생각해보세요.");
+        setTimeout(() => {
+            btn.classList.remove('wrong');
+        }, 500);
+    }
+}
 
-            // Init
-            switchScreen('home');
+function showReadingPrompt(word) {
+    const overlay = document.createElement('div');
+    overlay.className = 'reading-prompt';
+    overlay.innerHTML = `
+        <div class="reading-msg">따라 읽어보세요!</div>
+        <div class="reading-word">${word}</div>
+        <button class="next-btn">다음 문제 ➡️</button>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Play word sound
+    setTimeout(() => playSound(word), 500);
+
+    // Next button logic
+    overlay.querySelector('.next-btn').onclick = () => {
+        overlay.remove();
+        renderQuiz();
+    };
+}
+
+function playSound(text) {
+    if ('speechSynthesis' in window) {
+        // Cancel previous speech to avoid queue buildup
+        window.speechSynthesis.cancel();
+
+        const msg = new SpeechSynthesisUtterance(text);
+        msg.lang = 'ko-KR';
+        msg.rate = 0.9; // Slightly slower for kids
+        msg.pitch = 1.1; // Slightly higher pitch
+        window.speechSynthesis.speak(msg);
+    }
+}
+
+// Init
+switchScreen('home');
