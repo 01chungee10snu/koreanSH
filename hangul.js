@@ -22,27 +22,27 @@ const CONSONANTS = [
 ];
 
 const VOWELS = [
-    { name: '아', file: '모음_01_아.png', code: 0, char: 'ㅏ' },
-    { name: '야', file: '모음_02_야.png', code: 2, char: 'ㅑ' },
-    { name: '어', file: '모음_03_어.png', code: 4, char: 'ㅓ' },
-    { name: '여', file: '모음_04_여.png', code: 6, char: 'ㅕ' },
-    { name: '오', file: '모음_05_오.jpeg', code: 8, char: 'ㅗ' },
-    { name: '요', file: '모음_06_요.png', code: 12, char: 'ㅛ' },
-    { name: '우', file: '모음_07_우.jpeg', code: 13, char: 'ㅜ' },
-    { name: '유', file: '모음_08_유.jpeg', code: 17, char: 'ㅠ' },
-    { name: '으', file: '모음_09_으.png', code: 18, char: 'ㅡ' },
-    { name: '이', file: '모음_10_이.png', code: 20, char: 'ㅣ' },
-    { name: '애', file: '모음_11_애.png', code: 1, char: 'ㅐ' },
-    { name: '얘', file: '모음_12_얘.png', code: 3, char: 'ㅒ' },
-    { name: '에', file: '모음_13_에.png', code: 5, char: 'ㅔ' },
-    { name: '예', file: '모음_14_예.png', code: 7, char: 'ㅖ' },
-    { name: '와', file: '모음_15_와.png', code: 9, char: 'ㅘ' },
-    { name: '왜', file: '모음_16_왜.png', code: 10, char: 'ㅙ' },
-    { name: '외', file: '모음_17_외.png', code: 11, char: 'ㅚ' },
-    { name: '워', file: '모음_18_워.png', code: 14, char: 'ㅝ' },
-    { name: '웨', file: '모음_19_웨.png', code: 15, char: 'ㅞ' },
-    { name: '위', file: '모음_20_위.png', code: 16, char: 'ㅟ' },
-    { name: '의', file: '모음_21_의.jpeg', code: 19, char: 'ㅢ' }
+    { name: '아', file: '모음_01_아.png', code: 0, char: 'ㅏ', type: 'v' },
+    { name: '야', file: '모음_02_야.png', code: 2, char: 'ㅑ', type: 'v' },
+    { name: '어', file: '모음_03_어.png', code: 4, char: 'ㅓ', type: 'v' },
+    { name: '여', file: '모음_04_여.png', code: 6, char: 'ㅕ', type: 'v' },
+    { name: '오', file: '모음_05_오.jpeg', code: 8, char: 'ㅗ', type: 'h' },
+    { name: '요', file: '모음_06_요.png', code: 12, char: 'ㅛ', type: 'h' },
+    { name: '우', file: '모음_07_우.jpeg', code: 13, char: 'ㅜ', type: 'h' },
+    { name: '유', file: '모음_08_유.jpeg', code: 17, char: 'ㅠ', type: 'h' },
+    { name: '으', file: '모음_09_으.png', code: 18, char: 'ㅡ', type: 'h' },
+    { name: '이', file: '모음_10_이.png', code: 20, char: 'ㅣ', type: 'v' },
+    { name: '애', file: '모음_11_애.png', code: 1, char: 'ㅐ', type: 'v' },
+    { name: '얘', file: '모음_12_얘.png', code: 3, char: 'ㅒ', type: 'v' },
+    { name: '에', file: '모음_13_에.png', code: 5, char: 'ㅔ', type: 'v' },
+    { name: '예', file: '모음_14_예.png', code: 7, char: 'ㅖ', type: 'v' },
+    { name: '와', file: '모음_15_와.png', code: 9, char: 'ㅘ', type: 'h' },
+    { name: '왜', file: '모음_16_왜.png', code: 10, char: 'ㅙ', type: 'h' },
+    { name: '외', file: '모음_17_외.png', code: 11, char: 'ㅚ', type: 'h' },
+    { name: '워', file: '모음_18_워.png', code: 14, char: 'ㅝ', type: 'h' },
+    { name: '웨', file: '모음_19_웨.png', code: 15, char: 'ㅞ', type: 'h' },
+    { name: '위', file: '모음_20_위.png', code: 16, char: 'ㅟ', type: 'h' },
+    { name: '의', file: '모음_21_의.jpeg', code: 19, char: 'ㅢ', type: 'h' }
 ];
 
 // Quiz Data
@@ -361,7 +361,7 @@ function checkCombine() {
 }
 
 function getJamoImages(word) {
-    const images = [];
+    const syllables = [];
     for (let i = 0; i < word.length; i++) {
         const charCode = word.charCodeAt(i);
         // Check if it's a Hangul Syllable
@@ -371,44 +371,35 @@ function getJamoImages(word) {
             const jung = ((offset - jong) / 28) % 21;
             const cho = (((offset - jong) / 28) - jung) / 21;
 
-            // Map to our data
-            // Cho (Initial) -> CONSONANTS
+            const syllable = { cho: null, jung: null, jong: null, type: 'v' };
+
+            // Cho
             const choItem = CONSONANTS.find(c => c.code === cho);
-            if (choItem) images.push(choItem.file);
+            if (choItem) syllable.cho = choItem.file;
 
-            // Jung (Vowel) -> VOWELS
+            // Jung
             const jungItem = VOWELS.find(v => v.code === jung);
-            if (jungItem) images.push(jungItem.file);
+            if (jungItem) {
+                syllable.jung = jungItem.file;
+                syllable.type = jungItem.type || 'v';
+            }
 
-            // Jong (Final) -> CONSONANTS (reuse initials if possible)
+            // Jong
             if (jong > 0) {
                 const jongMap = {
-                    1: 0, // ㄱ
-                    2: 1, // ㄲ
-                    4: 2, // ㄴ
-                    7: 3, // ㄷ
-                    8: 5, // ㄹ
-                    16: 6, // ㅁ
-                    17: 7, // ㅂ
-                    19: 9, // ㅅ
-                    20: 10, // ㅆ
-                    21: 11, // ㅇ
-                    22: 12, // ㅈ
-                    23: 14, // ㅊ
-                    24: 15, // ㅋ
-                    25: 16, // ㅌ
-                    26: 17, // ㅍ
-                    27: 18  // ㅎ
+                    1: 0, 2: 1, 4: 2, 7: 3, 8: 5, 16: 6, 17: 7,
+                    19: 9, 20: 10, 21: 11, 22: 12, 23: 14, 24: 15,
+                    25: 16, 26: 17, 27: 18
                 };
-
                 if (jongMap[jong] !== undefined) {
                     const jongItem = CONSONANTS.find(c => c.code === jongMap[jong]);
-                    if (jongItem) images.push(jongItem.file);
+                    if (jongItem) syllable.jong = jongItem.file;
                 }
             }
+            syllables.push(syllable);
         }
     }
-    return images;
+    return syllables;
 }
 
 function renderQuiz() {
@@ -434,49 +425,70 @@ function renderQuiz() {
         <div style="margin-bottom: 20px; font-size: 1.2rem; color: #777;">이것은 무엇일까요?</div>
         <div class="quiz-options">
             ${options.map(opt => {
-        const imgs = getJamoImages(opt.word);
-        const imgHtml = imgs.map(src => `<img src="images/${src}" class="mini-char">`).join('');
-        return `<button class="quiz-btn" onclick="checkAnswer(this, '${opt.word}', '${answerData.word}')">
-                    <div class="word-imgs">${imgHtml}</div>
-                </button>`;
-    }).join('')}
+        const syllables = getJamoImages(opt.word);
+        const syllableHtml = syllables.map(s => {
+            let inner = '';
+            if (s.type === 'v') {
+                // Vertical: Cho+Jung side by side, Jong below
+                inner = \`
+                            <div class="syllable-row">
+                                <img src="images/\${s.cho}" class="mini-char">
+                                <img src="images/\${s.jung}" class="mini-char">
+                            </div>
+                            \${s.jong ? \`<img src="images/\${s.jong}" class="mini-char">\` : ''}
+                        \`;
+                    } else {
+                        // Horizontal: Cho, then Jung below, then Jong below
+                        inner = \`
+                            <img src="images/\${s.cho}" class="mini-char">
+                            <img src="images/\${s.jung}" class="mini-char">
+                            \${s.jong ? \`<img src="images/\${s.jong}" class="mini-char">\` : ''}
+                        \`;
+                    }
+                    return \`<div class="syllable-block \${s.type}">\${inner}</div>\`;
+                }).join('');
+                
+                return \`<button class="quiz-btn" onclick="checkAnswer(this, '\${opt.word}', '\${answerData.word}')">
+                    <div class="word-imgs">\${syllableHtml}</div>
+                </button>\`;
+            }).join('')}
         </div>
     `;
 
-    mainContainer.appendChild(wrapper);
+                mainContainer.appendChild(wrapper);
 
-    // Play sound
-    playSound("이것은 무엇일까요?");
-}
+                // Play sound
+                playSound("이것은 무엇일까요?");
+            }
 
-function checkAnswer(btn, selected, correct) {
-    if (selected === correct) {
-        btn.classList.add('correct');
-        playSound("딩동댕! " + correct + "입니다!");
-        setTimeout(() => {
-            renderQuiz();
-        }, 2000);
-    } else {
-        btn.classList.add('wrong');
-        playSound("땡! 다시 생각해보세요.");
-        setTimeout(() => {
-            btn.classList.remove('wrong');
-        }, 500);
-    }
-}
+            function checkAnswer(btn, selected, correct) {
+                if (selected === correct) {
+                    btn.classList.add('correct');
+                    playSound("딩동댕! " + correct + "입니다!");
+                    setTimeout(() => {
+                        renderQuiz();
+                    }, 2000);
+                } else {
+                    btn.classList.add('wrong');
+                    playSound("땡! 다시 생각해보세요.");
+                    setTimeout(() => {
+                        btn.classList.remove('wrong');
+                    }, 500);
+                }
+            }
 
-function playSound(text) {
-    if ('speechSynthesis' in window) {
-        // Cancel previous speech to avoid queue buildup
-        window.speechSynthesis.cancel();
+            function playSound(text) {
+                if ('speechSynthesis' in window) {
+                    // Cancel previous speech to avoid queue buildup
+                    window.speechSynthesis.cancel();
 
-        const msg = new SpeechSynthesisUtterance(text);
-        msg.lang = 'ko-KR';
-        msg.rate = 0.9; // Slightly slower for kids
-        msg.pitch = 1.1; // Slightly higher pitch
-        window.speechSynthesis.speak(msg);
-    }
-}
+                    const msg = new SpeechSynthesisUtterance(text);
+                    msg.lang = 'ko-KR';
+                    msg.rate = 0.9; // Slightly slower for kids
+                    msg.pitch = 1.1; // Slightly higher pitch
+                    window.speechSynthesis.speak(msg);
+                }
+            }
 
-// Init
-switchScreen('home');
+            // Init
+            switchScreen('home');
