@@ -1,4 +1,4 @@
-const CACHE_NAME = 'super-phonics-v2';
+const CACHE_NAME = 'super-phonics-v3';
 const ASSETS = [
     './',
     './index.html',
