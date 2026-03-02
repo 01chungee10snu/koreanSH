@@ -441,6 +441,9 @@ function switchScreen(screenName) {
         case 'combine':
             renderCombine();
             break;
+        case 'typing':
+            renderTyping();
+            break;
         case 'quiz':
             renderQuiz();
             break;
@@ -464,6 +467,9 @@ function renderHome() {
         </button>
         <button class="big-btn btn-play" onclick="document.querySelector('[data-target=combine]').click()">
             ✨ 글자 만들기 놀이
+        </button>
+        <button class="big-btn btn-typing" onclick="document.querySelector('[data-target=typing]').click()">
+            ⌨️ 단어 입력하기
         </button>
         <button class="big-btn btn-quiz" onclick="document.querySelector('[data-target=quiz]').click()">
             ❓ 단어 퀴즈
@@ -717,6 +723,83 @@ function showReadingPrompt(word) {
         overlay.remove();
         renderQuiz();
     };
+}
+
+function renderTyping() {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'typing-screen screen';
+
+    // Pick Random Word
+    const answerData = QUIZ_WORDS[Math.floor(Math.random() * QUIZ_WORDS.length)];
+
+    wrapper.innerHTML = `
+        <div class="typing-top">
+            <div class="typing-emoji">${answerData.emoji}</div>
+            <div class="typing-word">${answerData.word}</div>
+        </div>
+        <div class="typing-input-container">
+            <input type="text" class="typing-input" id="typing-input-field" placeholder="여기에 쓰세요" autocomplete="off" spellcheck="false" inputmode="text">
+            <button class="btn-submit" onclick="checkTypingAnswer('${answerData.word}')">제출</button>
+            <div class="typing-feedback" id="typing-feedback-msg"></div>
+        </div>
+    `;
+
+    mainContainer.appendChild(wrapper);
+
+    // Play sound
+    playSound(answerData.word + ". 보고 똑같이 적어보세요.");
+
+    // Add enter key support
+    const inputField = document.getElementById('typing-input-field');
+    inputField.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            checkTypingAnswer(answerData.word);
+        }
+    });
+
+    // Auto-focus after a short delay (optional, might be annoying on mobile if keyboard pops up instantly, 
+    // but on desktop it's good. Since it's web, user can just click it.)
+    setTimeout(() => {
+        inputField.focus();
+    }, 500);
+}
+
+function checkTypingAnswer(correctWord) {
+    const inputField = document.getElementById('typing-input-field');
+    const feedbackMsg = document.getElementById('typing-feedback-msg');
+    const userAnswer = inputField.value.trim();
+
+    if (!userAnswer) return;
+
+    if (userAnswer === correctWord) {
+        playSound("딩동댕! 아주 잘했어요!");
+        inputField.style.borderColor = '#4ECDC4';
+        inputField.style.backgroundColor = '#E8F8F5';
+        feedbackMsg.textContent = "정답이에요! 👏";
+        feedbackMsg.style.color = '#4ECDC4';
+
+        // Next problem after 2s
+        setTimeout(() => {
+            renderTyping();
+        }, 2000);
+    } else {
+        playSound("땡! 다시 한 번 확인해보세요.");
+        inputField.style.animation = 'shake 0.4s';
+        inputField.style.borderColor = '#FF6B6B';
+        feedbackMsg.textContent = "틀렸어요. 다시 써보세요! 😅";
+        feedbackMsg.style.color = '#FF6B6B';
+
+        setTimeout(() => {
+            inputField.style.animation = 'none';
+        }, 400);
+
+        // Clear input after a short delay so they can try again
+        setTimeout(() => {
+            inputField.value = '';
+            inputField.focus();
+            feedbackMsg.textContent = '';
+        }, 1500);
+    }
 }
 
 function playSound(text) {
